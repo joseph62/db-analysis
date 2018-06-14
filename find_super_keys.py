@@ -4,25 +4,34 @@ import sys
 from pprint import pprint
 from itertools import combinations, chain, islice
 from argparse import ArgumentParser
-from csv import reader
+from csv import reader, DictReader
 from re import match
 
 def get_arguments(argv):
     parser = ArgumentParser(description='Find all super keys in a csv file')
     parser.add_argument('-f','--file',help='CSV file to analyze',required=True)
     parser.add_argument('-n','--number',help='Number of keys to show',type=int)
-    parser.add_argument('-e','--exclusion',help='List of strings to exclude from keys',nargs='+',default=[])
-    parser.add_argument('-r','--regex-exclusion',help='Regular expression to exclude columns')
+    parser.add_argument('-e','--exclusion',help='List of strings to exclude columns from keys',nargs='+',default=[])
+    parser.add_argument('-r','--regex-exclusion',help='Regular expression to exclude columns from keys')
     parser.add_argument('-s','--max-key-size',help='Maximum key size to accept',type=int,default=None)
+    parser.add_argument('--unique-columns',action="store_true",
+                        help='Mutate column name to be "name - index" in order to force uniqueness')
     return parser.parse_args(argv[1:])
 
-def get_csv_data(file_):
+def get_csv_data(file_,force_unique = False):
     with open(file_,'r') as f:
         lines = [line.strip() for line in f]
-    header, *rows = list(reader(lines))
-    # make sure column headers are unique
-    header = [f'{title} - {index}' for index,title in enumerate(header)]
-    return (header,[dict(zip(header,row)) for row in rows])
+    if force_unique:
+        header, *rows = list(reader(lines))
+        # make sure column headers are unique
+        header = [f'{title} - {index}' for index,title in enumerate(header)]
+        return (header,[dict(zip(header,row)) for row in rows])
+    else:
+        dict_reader = DictReader(lines)
+        header=  dict_reader.fieldnames
+        rows = list(dict_reader)
+        return (header,rows)
+        
 
 def is_super_key(key,rows):
     values = set()
@@ -45,7 +54,7 @@ def filter_exclusions(header,exclusions):
 
 def main(argv):
     args = get_arguments(argv)
-    header,rows = get_csv_data(args.file)
+    header,rows = get_csv_data(args.file,args.unique_columns)
 
     header = filter_regex(filter_exclusions(header,args.exclusion),args.regex_exclusion)
 
