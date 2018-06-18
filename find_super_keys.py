@@ -11,7 +11,8 @@ def get_arguments(argv):
     parser = ArgumentParser(description='Find all super keys in a csv file')
     parser.add_argument('-f','--file',help='CSV file to analyze',required=True)
     parser.add_argument('-n','--number',help='Number of keys to show',type=int)
-    parser.add_argument('-e','--exclusion',help='List of strings to exclude columns from keys',nargs='+',default=[])
+    parser.add_argument('-e','--exclusion',nargs='+',default=[],
+                        help='List of strings to exclude columns from keys')
     parser.add_argument('-r','--regex-exclusion',help='Regular expression to exclude columns from keys')
     parser.add_argument('-s','--max-key-size',help='Maximum key size to accept',type=int,default=None)
     parser.add_argument('--unique-columns',action="store_true",
@@ -49,13 +50,12 @@ def filter_regex(header,regex):
 
 def filter_exclusions(header,exclusions):
     if exclusions:
-        header = [key for key in header if key not in args.exclusion]
+        header = [key for key in header if key not in exclusions]
     return header
 
 def main(argv):
     args = get_arguments(argv)
     header,rows = get_csv_data(args.file,args.unique_columns)
-
     header = filter_regex(filter_exclusions(header,args.exclusion),args.regex_exclusion)
 
     max_length = args.max_key_size if args.max_key_size and args.max_key_size < len(header) else len(header) 

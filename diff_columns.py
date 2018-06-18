@@ -3,23 +3,27 @@ from argparse import ArgumentParser
 from collections import defaultdict, Counter
 from pprint import pprint
 import csv
+import sys
 
-def get_arguments():
+def get_arguments(argv):
     parser = ArgumentParser(description="Find the differing columns in csv rows")
     parser.add_argument("-f","--file",help="csv file path",required=True)
+    parser.add_argument("--unique-columns",action="store_true",
+                        help="Make column names unique by combining name and index")
     parser.add_argument("--include-count",action="store_true",
                         help="Include counts of the column values")
     parser.add_argument("--format-csv",action="store_true",
                         help="Format output in csv")
-    return parser.parse_args()
+    return parser.parse_args(argv[1:])
 
-def get_csv_rows(lines):
+def get_csv_rows(lines,unique_columns=True):
     """
     Get a list of dicts for each row of the csv
     """
     header, *rows = list(csv.reader(lines))
     # make sure column headers are unique
-    header = [f'{title} - {index}' for index,title in enumerate(header)]
+    if unique_columns:
+        header = [f'{title} - {index}' for index,title in enumerate(header)]
     return [ dict(zip(header,row)) for row in rows ]
 
 def get_csv_columns(rows):
@@ -32,11 +36,10 @@ def get_csv_columns(rows):
 def get_diff_columns(columns):
     def all_same(iterable):
         return len(set(iterable)) == 1
-    return dict([(key,values) for key,values in columns.items() 
-                                        if not all_same(values)])
+    return {key: values for key,values in columns.items() if not all_same(values)}
 
 def add_counts_columns(columns):
-    return dict([(key,dict(Counter(values))) for key,values in columns.items()])
+    return {key: dict(Counter(values)) for key,values in columns.items()}
 
 def convert_columns_to_rows(columns):
     header = list(columns.keys())
@@ -44,12 +47,13 @@ def convert_columns_to_rows(columns):
     rows = [ list(row) for row in zip(*raw_columns) ]
     return [header, *rows]
 
-def main(args):
+def main(argv):
+    args = get_arguments(argv)
 
     with open(args.file,'r') as f:
         lines = [line.rstrip() for line in f]
 
-    rows = get_csv_rows(lines)
+    rows = get_csv_rows(lines,args.unique_columns)
     columns = get_csv_columns(rows)
     diffs =  get_diff_columns(columns)
     if args.format_csv:
@@ -60,6 +64,7 @@ def main(args):
         pprint(diffs)
     else:
         pprint(diffs)
+    return 0
 
 if __name__ == '__main__':
-    main(get_arguments())
+    sys.exit(main(sys.argv))
