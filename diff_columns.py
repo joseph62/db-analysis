@@ -6,7 +6,7 @@ import csv
 import sys
 
 
-def get_arguments(argv):
+def get_arguments(args):
     parser = ArgumentParser(description="Find the differing columns in csv rows")
     parser.add_argument("-f", "--file", help="csv file path", required=True)
     parser.add_argument(
@@ -22,15 +22,15 @@ def get_arguments(argv):
     parser.add_argument(
         "--format-csv", action="store_true", help="Format output in csv"
     )
-    return parser.parse_args(argv[1:])
+    return parser.parse_args(args)
 
 
-def get_csv_rows(lines, unique_columns=True):
+def get_csv_rows(path, unique_columns=True):
     """
-    Get a list of dicts for each row of the csv
+    Read a csv from path and return rows.
     """
-    header, *rows = list(csv.reader(lines))
-    # make sure column headers are unique
+    with open(path) as f:
+        header, *rows = csv.reader(f)
     if unique_columns:
         header = [f"{title} - {index}" for index, title in enumerate(header)]
     return [dict(zip(header, row)) for row in rows]
@@ -62,25 +62,22 @@ def convert_columns_to_rows(columns):
     return [header, *rows]
 
 
-def main(argv):
-    args = get_arguments(argv)
-
-    with open(args.file, "r") as f:
-        lines = [line.rstrip() for line in f]
-
-    rows = get_csv_rows(lines, args.unique_columns)
+def main(args):
+    rows = get_csv_rows(args.file, args.unique_columns)
     columns = get_csv_columns(rows)
     diffs = get_diff_columns(columns)
+
     if args.format_csv:
         diff_rows = convert_columns_to_rows(diffs)
-        print("\n".join([",".join(row) for row in diff_rows]))
+        print("\n".join(",".join(row) for row in diff_rows))
     elif args.include_count:
         diffs = add_counts_columns(diffs)
         pprint(diffs)
     else:
         pprint(diffs)
+
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main(get_arguments(sys.argv[1:])))
