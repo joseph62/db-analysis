@@ -41,17 +41,17 @@ def get_arguments(argv):
 
 def get_csv_data(file_, force_unique=False):
     with open(file_, "r") as f:
-        lines = [line.strip() for line in f]
-    if force_unique:
-        header, *rows = list(reader(lines))
-        # make sure column headers are unique
-        header = [f"{title} - {index}" for index, title in enumerate(header)]
-        return (header, [dict(zip(header, row)) for row in rows])
-    else:
-        dict_reader = DictReader(lines)
-        header = dict_reader.fieldnames
-        rows = list(dict_reader)
-        return (header, rows)
+        if force_unique:
+            header, *rows = reader(f)
+            # make sure column headers are unique
+            header = [f"{title} - {index}" for index, title in enumerate(header)]
+            rows = [dict(zip(header, row)) for row in rows]
+            return (header, rows)
+        else:
+            dict_reader = DictReader(f)
+            header = dict_reader.fieldnames
+            rows = list(dict_reader)
+            return (header, rows)
 
 
 def is_super_key(key, rows):
@@ -66,7 +66,7 @@ def is_super_key(key, rows):
 
 def filter_regex(header, regex):
     if regex:
-        header = list(key for key in header if match(regex, key) is None)
+        header = [key for key in header if match(regex, key) is None]
     return header
 
 
@@ -79,9 +79,8 @@ def filter_exclusions(header, exclusions):
 def main(argv):
     args = get_arguments(argv)
     header, rows = get_csv_data(args.file, args.unique_columns)
-    header = filter_regex(
-        filter_exclusions(header, args.exclusion), args.regex_exclusion
-    )
+    header = filter_exclusions(header, args.exclusion)
+    header = filter_regex(header, args.regex_exclusion)
 
     max_length = (
         args.max_key_size
