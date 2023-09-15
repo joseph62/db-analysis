@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from collections import defaultdict, Counter
 from pprint import pprint
 import csv
+import json
 import sys
 
 
@@ -60,8 +61,7 @@ def add_counts_columns(columns):
 def convert_columns_to_rows(columns):
     header = list(columns.keys())
     raw_columns = [columns[key] for key in header]
-    rows = [list(row) for row in zip(*raw_columns)]
-    return [header, *rows]
+    return [dict(zip(header, row)) for row in zip(*raw_columns)]
 
 
 def main(args):
@@ -71,13 +71,17 @@ def main(args):
     diffs = get_diff_columns(columns)
 
     if args.format_csv:
+        writer = csv.DictWriter(sys.stdout, fieldnames=diffs.keys())
         diff_rows = convert_columns_to_rows(diffs)
-        print("\n".join(",".join(row) for row in diff_rows))
+        writer.writeheader()
+        writer.writerows(diff_rows)
     elif args.include_count:
         diffs = add_counts_columns(diffs)
-        pprint(diffs)
+        json.dump(diffs, sys.stdout, indent=2)
+        print()
     else:
-        pprint(diffs)
+        json.dump(diffs, sys.stdout, indent=2)
+        print()
 
     return 0
 
