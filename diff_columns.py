@@ -25,15 +25,17 @@ def get_arguments(args):
     return parser.parse_args(args)
 
 
-def get_csv_rows(path, unique_columns=True):
+def get_csv_rows(handle, unique_columns=True):
     """
-    Read a csv from path and return rows.
+    Read a csv from a handle. If unique_columns is set then all headers will include the index of the column header
     """
-    with open(path) as f:
-        header, *rows = csv.reader(f)
+    reader = csv.reader(handle)
+    header = next(reader)
+
     if unique_columns:
         header = [f"{title} - {index}" for index, title in enumerate(header)]
-    return [dict(zip(header, row)) for row in rows]
+
+    return [dict(zip(header, row)) for row in reader]
 
 
 def get_csv_columns(rows):
@@ -63,7 +65,8 @@ def convert_columns_to_rows(columns):
 
 
 def main(args):
-    rows = get_csv_rows(args.file, args.unique_columns)
+    with open(args.file) as handle:
+        rows = get_csv_rows(handle, args.unique_columns)
     columns = get_csv_columns(rows)
     diffs = get_diff_columns(columns)
 
